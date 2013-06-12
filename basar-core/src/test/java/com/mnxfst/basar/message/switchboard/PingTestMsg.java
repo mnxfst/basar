@@ -18,25 +18,20 @@
 package com.mnxfst.basar.message.switchboard;
 
 import com.mnxfst.basar.message.BasarMessage;
-import com.mnxfst.basar.switchboard.Switchboard;
 
 /**
- * Send by the {@link Switchboard switchboard} in respond to a successful {@link RegisterMessageReceiverMsg message type receiver registration} 
+ * Simple ping message
  * @author mnxfst
  * @since 12.06.2013
  *
  * Revision Control Info $Id$
  */
-public class ReceiverRegistrationSuccessMsg extends BasarMessage {
+public class PingTestMsg extends BasarMessage {
 
-	private static final long serialVersionUID = -9062074420513052020L;
-
-	public ReceiverRegistrationSuccessMsg() {
-		super();
-	}
+	private static final long serialVersionUID = 89459776032411590L;
 	
-	public ReceiverRegistrationSuccessMsg(String sourceRef, String sequenceId, long created) {
+	public PingTestMsg(String sourceRef, String sequenceId, long created) {
 		super(sourceRef, sequenceId, created);
 	}
-	
+
 }

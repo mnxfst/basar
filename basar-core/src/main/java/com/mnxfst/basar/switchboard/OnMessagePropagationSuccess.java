@@ -15,34 +15,27 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.mnxfst.basar.message.switchboard;
+package com.mnxfst.basar.switchboard;
 
-import com.mnxfst.basar.message.BasarMessage;
-import com.mnxfst.basar.service.Switchboard;
+import akka.dispatch.OnComplete;
 
 /**
- * Message used for requesting the current stats of a {@link Switchboard switchboard} instance.
+ * Executed on a successful {@link MessagePropagationJob message propagation} 
  * @author mnxfst
  * @since 12.06.2013
  *
  * Revision Control Info $Id$
  */
-public class SwitchboardStatsRequestMsg extends BasarMessage {
-
-	private static final long serialVersionUID = 2748556027190386675L;
-	
-	public SwitchboardStatsRequestMsg() {
-		super();
-	}
+public class OnMessagePropagationSuccess extends OnComplete<Boolean> {
 
 	/**
-	 * Initializes the message using the provided input
-	 * @param sourceRef
-	 * @param sequenceId
-	 * @param created
+	 * @see akka.dispatch.OnComplete#onComplete(java.lang.Throwable, java.lang.Object)
 	 */
-	public SwitchboardStatsRequestMsg(String sourceRef, String sequenceId, long created) {
-		super(sourceRef, sequenceId, created);
+	public void onComplete(Throwable cause, Boolean result) throws Throwable {
+		if(cause != null)
+			throw cause;
+		else
+			System.out.println("result: " + result);
 	}
 
 }

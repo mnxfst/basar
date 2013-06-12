@@ -15,22 +15,25 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.mnxfst.basar.service;
+package com.mnxfst.basar.switchboard;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang.StringUtils;
+
+import scala.concurrent.Future;
+
 import akka.actor.ActorRef;
 import akka.actor.UntypedActor;
+import akka.dispatch.Futures;
 import akka.routing.Broadcast;
 
 import com.mnxfst.basar.message.BasarMessage;
 import com.mnxfst.basar.message.switchboard.ReceiverRegistrationSuccessMsg;
 import com.mnxfst.basar.message.switchboard.RegisterMessageReceiverMsg;
-import com.mnxfst.basar.message.switchboard.SwitchboardStatsRequestMsg;
-import com.mnxfst.basar.message.switchboard.SwitchboardStatsResponseMsg;
 
 /**
  * Receives <b>all</b> inbound messages and forwards them to all registered/interested components. Components
@@ -50,6 +53,7 @@ import com.mnxfst.basar.message.switchboard.SwitchboardStatsResponseMsg;
  */
 public class Switchboard extends UntypedActor {
 
+	/** map of all available message types being associated with a set of listener that wish to be notified about these messages */
 	private final Map<Class<? extends BasarMessage>, Set<ActorRef>> messageListeners = new HashMap<>();
 	
 	/**
@@ -62,39 +66,44 @@ public class Switchboard extends UntypedActor {
 
 			//////////////////////////////////////////////////////////////////////////////////////////////
 			// at first: check if the message contains any switchboard relevant content
+			// switchboard relevant messages are:
+			// - message type receiver registrations
 			if(message instanceof RegisterMessageReceiverMsg) {
 				handleMessageReceiverRegistration((RegisterMessageReceiverMsg)message);
-			} // ... here might follow more relevant message types
-			//////////////////////////////////////////////////////////////////////////////////////////////
-
-			//////////////////////////////////////////////////////////////////////////////////////////////
-			// now: fetch the list of listeners that registered themselves for a specific message type 
-			//      that might even be listeners for those message types that are declard to be switchboard 
-			//      relevant - eg. logging services or alike
-			Set<ActorRef> messageTypeListeningActorRefs = messageListeners.get(message.getClass());
-			if(messageTypeListeningActorRefs != null && !messageTypeListeningActorRefs.isEmpty()) {
-				for(ActorRef receivingActorRef : messageTypeListeningActorRefs) {
-					receivingActorRef.forward(message, getContext());
-				}
+			} else {
+				propagateMessageTowardsListeners((BasarMessage)message);
 			}
 			//////////////////////////////////////////////////////////////////////////////////////////////			
 			
-		} else if (message instanceof String) {
-			System.out.println("Received string: " + message);
 		} else {			
-			// ... otherwise forward to "unhandled" handler 
+			// ... otherwise forward to "unhandled" handler
+			System.out.println("unhandled: " + message);
 			unhandled(message);
 		}		
 	}
 	
 	/**
-	 * Handles messages of tpye {@link RegisterMessageReceiverMsg}. The component referenced through 
+	 * Propagates the provided message to listeners being registered for the message type
+	 * @param basarMessage
+	 */
+	protected void propagateMessageTowardsListeners(final BasarMessage basarMessage) {
+		Future<Boolean> propagationResult = Futures.future(new MessagePropagationJob(basarMessage, this.messageListeners.get(basarMessage.getClass()), getSelf()), getContext().system().dispatcher());
+//		propagationResult.onComplete(new OnMessagePropagationSuccess(), getContext().system().dispatcher());
+	}
+	
+	/**
+	 * Handles messages of type {@link RegisterMessageReceiverMsg}. The component referenced through 
 	 * contained {@link RegisterMessageReceiverMsg#getReceiverRef()} will be registered for all messages
 	 * of selected {@link RegisterMessageReceiverMsg#getMessageType() type}. 
 	 * @param msg
 	 */
 	protected void handleMessageReceiverRegistration(RegisterMessageReceiverMsg msg) {
 
+		if(StringUtils.startsWithIgnoreCase(getSelf().path().toString(), msg.getReceiverRef())) {
+			System.out.println("Switchboard must not be able to register itself as message receiver");
+			return;
+		}
+		
 		// fetch actor as well the message type the contained receiver wishes to register itself for
 		Class<? extends BasarMessage> messageType = msg.getMessageType();
 		ActorRef receivingActorRef = getContext().system().actorFor(msg.getReceiverRef());
@@ -104,39 +113,13 @@ public class Switchboard extends UntypedActor {
 		if(receivers == null)
 			receivers = new HashSet<>();
 		receivers.add(receivingActorRef);
-		messageListeners.put(messageType, receivers);
+		this.messageListeners.put(messageType, receivers);
 		
 		// finally: notify the actor which send the request about its successful registration - keep the sequence identifier to allow
 		// the sender a valid association between request and response ... if he does in any way
 		receivingActorRef.tell(new ReceiverRegistrationSuccessMsg(getSelf().path().toString(), msg.getSequenceId(), System.currentTimeMillis()), getSelf());
-	}
-	
-	/**
-	 * Handles messages of type {@link SwitchboardStatsRequestMsg}. The method builds a {@link SwitchboardStatsResponseMsg response}
-	 * and {@link ActorRef#tell(Object, ActorRef) tells} the referenced source component about it. 
-	 * @param msg
-	 */
-	protected void handleSwitchboardStatsRequest(SwitchboardStatsRequestMsg msg) {
 		
-		SwitchboardStatsResponseMsg response = new SwitchboardStatsResponseMsg(getSelf().path().toString(), msg.getSequenceId(), System.currentTimeMillis());
-		ActorRef requestingActorRef = getContext().system().actorFor(msg.getSourceRef());
-		if(!this.messageListeners.isEmpty()) {
-			for(Class<? extends BasarMessage> msgType : this.messageListeners.keySet()) {
-				Set<ActorRef> listeners = this.messageListeners.get(msgType);
-				response.addMessageTypeListenerCount(msgType.getName(), (listeners != null ? listeners.size() : 0));
-			}
-		}
-		requestingActorRef.tell(response, getSelf());
-	}
-	
-	/**
-	 * Convenience method for requesting {@link SwitchboardStatsRequestMsg statistics} from all {@link Switchboard switchboard} instances 
-	 * @param switchboardActorRef
-	 * @param requestingActorRef
-	 * @param sequenceId
-	 */
-	public static void requestSwitchboardStats(final ActorRef switchboardActorRef, final ActorRef requestingActorRef, final String sequenceId) {		
-		switchboardActorRef.tell(new Broadcast(new SwitchboardStatsRequestMsg(requestingActorRef.path().toString(), sequenceId, System.currentTimeMillis())), requestingActorRef);		
+		System.out.println("Successfully registered [type="+messageType+", actor="+receivingActorRef+", listeners="+receivers.size()+", this=" + this+"]");
 	}
 
 	/**

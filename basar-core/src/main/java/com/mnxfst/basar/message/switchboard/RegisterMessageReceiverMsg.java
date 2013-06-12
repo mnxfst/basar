@@ -18,7 +18,7 @@
 package com.mnxfst.basar.message.switchboard;
 
 import com.mnxfst.basar.message.BasarMessage;
-import com.mnxfst.basar.service.Switchboard;
+import com.mnxfst.basar.switchboard.Switchboard;
 
 /**
  * Message to notify the {@link Switchboard switchboard} about a component being interested in
