@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.mnxfst.basar.message.flow;
+package com.mnxfst.basar.message.switchboard;
 
 import com.mnxfst.basar.message.BasarMessage;
 import com.mnxfst.basar.service.Switchboard;
