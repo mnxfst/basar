@@ -21,21 +21,21 @@ import com.mnxfst.basar.message.BasarMessage;
 import com.mnxfst.basar.switchboard.Switchboard;
 
 /**
- * Send by the {@link Switchboard switchboard} in respond to a successful {@link RegisterMessageReceiverMsg message type receiver registration} 
+ * Send by the {@link Switchboard switchboard} in respond to a successful {@link RegisterMessageListenerMsg message type receiver registration} 
  * @author mnxfst
  * @since 12.06.2013
  *
  * Revision Control Info $Id$
  */
-public class ReceiverRegistrationSuccessMsg extends BasarMessage {
+public class ListenerRegistrationSuccessMsg extends BasarMessage {
 
 	private static final long serialVersionUID = -9062074420513052020L;
 
-	public ReceiverRegistrationSuccessMsg() {
+	public ListenerRegistrationSuccessMsg() {
 		super();
 	}
 	
-	public ReceiverRegistrationSuccessMsg(String sourceRef, String sequenceId, long created) {
+	public ListenerRegistrationSuccessMsg(String sourceRef, String sequenceId, long created) {
 		super(sourceRef, sequenceId, created);
 	}
 	

@@ -24,16 +24,14 @@ import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 
-import scala.concurrent.Future;
-
 import akka.actor.ActorRef;
 import akka.actor.UntypedActor;
 import akka.dispatch.Futures;
 import akka.routing.Broadcast;
 
 import com.mnxfst.basar.message.BasarMessage;
-import com.mnxfst.basar.message.switchboard.ReceiverRegistrationSuccessMsg;
-import com.mnxfst.basar.message.switchboard.RegisterMessageReceiverMsg;
+import com.mnxfst.basar.message.switchboard.ListenerRegistrationSuccessMsg;
+import com.mnxfst.basar.message.switchboard.RegisterMessageListenerMsg;
 
 /**
  * Receives <b>all</b> inbound messages and forwards them to all registered/interested components. Components
@@ -68,8 +66,8 @@ public class Switchboard extends UntypedActor {
 			// at first: check if the message contains any switchboard relevant content
 			// switchboard relevant messages are:
 			// - message type receiver registrations
-			if(message instanceof RegisterMessageReceiverMsg) {
-				handleMessageReceiverRegistration((RegisterMessageReceiverMsg)message);
+			if(message instanceof RegisterMessageListenerMsg) {
+				handleMessageReceiverRegistration((RegisterMessageListenerMsg)message);
 			} else {
 				propagateMessageTowardsListeners((BasarMessage)message);
 			}
@@ -85,19 +83,19 @@ public class Switchboard extends UntypedActor {
 	/**
 	 * Propagates the provided message to listeners being registered for the message type
 	 * @param basarMessage
+	 * TODO check what happens on heavy load, maybe we need a specialized dispatcher which queues inbound jobs
 	 */
 	protected void propagateMessageTowardsListeners(final BasarMessage basarMessage) {
-		Future<Boolean> propagationResult = Futures.future(new MessagePropagationJob(basarMessage, this.messageListeners.get(basarMessage.getClass()), getSelf()), getContext().system().dispatcher());
-//		propagationResult.onComplete(new OnMessagePropagationSuccess(), getContext().system().dispatcher());
+		Futures.future(new MessagePropagationJob(basarMessage, this.messageListeners.get(basarMessage.getClass()), getSelf()), getContext().system().dispatcher());
 	}
 	
 	/**
-	 * Handles messages of type {@link RegisterMessageReceiverMsg}. The component referenced through 
-	 * contained {@link RegisterMessageReceiverMsg#getReceiverRef()} will be registered for all messages
-	 * of selected {@link RegisterMessageReceiverMsg#getMessageType() type}. 
+	 * Handles messages of type {@link RegisterMessageListenerMsg}. The component referenced through 
+	 * contained {@link RegisterMessageListenerMsg#getReceiverRef()} will be registered for all messages
+	 * of selected {@link RegisterMessageListenerMsg#getMessageType() type}. 
 	 * @param msg
 	 */
-	protected void handleMessageReceiverRegistration(RegisterMessageReceiverMsg msg) {
+	protected void handleMessageReceiverRegistration(RegisterMessageListenerMsg msg) {
 
 		if(StringUtils.startsWithIgnoreCase(getSelf().path().toString(), msg.getReceiverRef())) {
 			System.out.println("Switchboard must not be able to register itself as message receiver");
@@ -117,9 +115,7 @@ public class Switchboard extends UntypedActor {
 		
 		// finally: notify the actor which send the request about its successful registration - keep the sequence identifier to allow
 		// the sender a valid association between request and response ... if he does in any way
-		receivingActorRef.tell(new ReceiverRegistrationSuccessMsg(getSelf().path().toString(), msg.getSequenceId(), System.currentTimeMillis()), getSelf());
-		
-		System.out.println("Successfully registered [type="+messageType+", actor="+receivingActorRef+", listeners="+receivers.size()+", this=" + this+"]");
+		receivingActorRef.tell(new ListenerRegistrationSuccessMsg(getSelf().path().toString(), msg.getSequenceId(), System.currentTimeMillis()), getSelf());
 	}
 
 	/**
@@ -131,6 +127,6 @@ public class Switchboard extends UntypedActor {
 	 * @param sequenceId
 	 */
 	public static void registerMessageTypeListener(final ActorRef switchboardActorRef, final ActorRef requestingActorRef, final ActorRef messageTypeListenerRef, final Class<? extends BasarMessage> messageType, final String sequenceId) {
-		switchboardActorRef.tell(new Broadcast(new RegisterMessageReceiverMsg(requestingActorRef.path().toString(), sequenceId, System.currentTimeMillis(), messageTypeListenerRef.path().toString(), messageType)), requestingActorRef);
+		switchboardActorRef.tell(new Broadcast(new RegisterMessageListenerMsg(requestingActorRef.path().toString(), sequenceId, System.currentTimeMillis(), messageTypeListenerRef.path().toString(), messageType)), requestingActorRef);
 	}
 }

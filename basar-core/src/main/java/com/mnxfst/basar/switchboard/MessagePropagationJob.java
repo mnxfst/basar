@@ -26,6 +26,7 @@ import com.mnxfst.basar.message.BasarMessage;
 
 /**
  * Propagates a provided message towards the given receivers
+ * TODO check if this can be enhanced by providing just one listener and have the job instantiated as much as there are listeners: one instance per listener
  * @author mnxfst
  * @since 12.06.2013
  *

@@ -1,4 +1,5 @@
 /**
+
  * basar - enhanced electronic marketplace
  * Copyright (C) 2013 Christian Kreutzfeldt
  * 
@@ -21,14 +22,14 @@ import com.mnxfst.basar.message.BasarMessage;
 import com.mnxfst.basar.switchboard.Switchboard;
 
 /**
- * Message to notify the {@link Switchboard switchboard} about a component being interested in
+ * Event to notify the {@link Switchboard switchboard} about a component being interested in
  * messages of a certain type. 
  * @author mnxfst
  * @since 11.06.2013
  *
  * Revision Control Info $Id$
  */
-public class RegisterMessageReceiverMsg extends BasarMessage {
+public class RegisterMessageListenerMsg extends BasarMessage {
 
 	private static final long serialVersionUID = 2248591190982783515L;
 
@@ -41,7 +42,7 @@ public class RegisterMessageReceiverMsg extends BasarMessage {
 	/**
 	 * Default constructor
 	 */
-	public RegisterMessageReceiverMsg() {		
+	public RegisterMessageListenerMsg() {		
 	}
 	
 	/**
@@ -52,7 +53,7 @@ public class RegisterMessageReceiverMsg extends BasarMessage {
 	 * @param receiverRef
 	 * @param messageType
 	 */
-	public RegisterMessageReceiverMsg(String sourceRef, String sequenceId, long created, String receiverRef, Class<? extends BasarMessage> messageType) {
+	public RegisterMessageListenerMsg(String sourceRef, String sequenceId, long created, String receiverRef, Class<? extends BasarMessage> messageType) {
 		super(sourceRef, sequenceId, created);
 		this.receiverRef = receiverRef;
 		this.messageType = messageType;

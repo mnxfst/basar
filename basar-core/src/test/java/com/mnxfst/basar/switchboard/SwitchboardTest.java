@@ -78,6 +78,8 @@ public class SwitchboardTest {
 			}
 		});
 
+		
+//		actorSystem.
 		final ActorRef pingActorRef = actorSystem.actorOf(pingActorProps, "pingActor");
 		final ActorRef pongActorRef = actorSystem.actorOf(pongRespondingActorProps, "pongActor");
 		final ActorRef pongNoRespondingActorRef = actorSystem.actorOf(pongNoRespondingActorProps, "pongNoResponseActor");
